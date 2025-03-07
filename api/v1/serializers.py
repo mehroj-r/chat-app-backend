@@ -1,10 +1,8 @@
 from django.contrib.auth.models import User
-from django.db import transaction
-from django.db.models import F
 
 from rest_framework import serializers
 
-from chat_app.models import Message, Chat, ChatUser
+from chat_app.models import Message, Chat
 
 
 
