@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.100.3', '*'] # Allow local h
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
     'corsheaders',
+    'channels',
     'django_extensions',
     'chat_app',
     'rest_framework',
@@ -76,8 +78,14 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'DjangoProject.wsgi.application'
+# WSGI_APPLICATION = 'DjangoProject.wsgi.application'
+ASGI_APPLICATION = "DjangoProject.asgi.application"
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -133,7 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
     "http://192.168.100.3:3000"
 ]
 

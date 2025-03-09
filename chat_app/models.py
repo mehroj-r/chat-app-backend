@@ -5,8 +5,16 @@ from django.dispatch import receiver
 
 
 class Chat(models.Model):
+
+    class ChatTypeChoices(models.TextChoices):
+        PRIVATE = 'private'
+        GROUP = 'group'
+
+
     members = models.ManyToManyField(User, related_name='members', through='ChatUser')
+    name = models.CharField(max_length=100, null=True, blank=True)
     last_message = models.ForeignKey('Message', on_delete=models.CASCADE, related_name="+", null=True, blank=True)
+    type = models.CharField(choices=ChatTypeChoices, max_length=10)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -14,6 +22,12 @@ class Chat(models.Model):
     @classmethod
     def get_or_create(cls, user1, user2):
         pass
+
+    @property
+    def display_name(self):
+        if self.type == 'private' and self.members.count() == 2:
+            return self.members.exclude(id=self.z.id).first().username
+        return self.name
 
 
 class Message(models.Model):

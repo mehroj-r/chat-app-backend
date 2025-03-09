@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from chat_app.models import Chat, Message, ChatUser
-from .serializers import CreateMessageSerializer, ChatSerializer, MessageSerializer, UserSerializer
+from .serializers import CreateMessageSerializer, ChatSerializer, MessageSerializer, UserSerializer, ChatUserSerializer
+
 
 class SendMessageView(generics.CreateAPIView):
 
@@ -31,6 +32,27 @@ class ChatListAPIView(generics.ListAPIView):
     def get_queryset(self):
         return super().get_queryset().filter(users__user=self.request.user)
 
+class ChatMembersListAPIView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    queryset = ChatUser.objects.all()
+    serializer_class = ChatUserSerializer
+
+    def get_chat_object(self, chat_id):
+        try:
+            return Chat.objects.get(id=chat_id)
+        except Chat.DoesNotExist:
+            return None
+
+    def get_queryset(self):
+
+        chat_id = self.kwargs['chat_id']
+        chat = self.get_chat_object(chat_id)
+
+        if not chat:
+            return Chat.objects.none()
+
+        return super().get_queryset().filter(chat=chat)
 
 class ChatMessagesListAPIView(generics.ListAPIView):
 
