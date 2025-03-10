@@ -105,9 +105,19 @@ class MessagesConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_send(
                     f"chat_{self.chat_id}", event
                 )
+            elif 'typing_status' in text_data_json:
 
+                typing_status = text_data_json['typing_status']
 
+                event = {
+                    'type': 'typing_status_handler',
+                    'user': self.user,
+                    'typing_status': typing_status,
+                }
 
+                await self.channel_layer.group_send(
+                    f"chat_{self.chat_id}", event
+                )
 
         else:
             # If message received before authentication, close connection
@@ -130,9 +140,18 @@ class MessagesConsumer(AsyncWebsocketConsumer):
 
     async def update_last_read_message(self, message):
         """Fetch the latest message and update last_read_message for the user"""
-
         if message:
             await update_chat_user_last_read(self.chat, self.user, message)
+
+
+    async def typing_status_handler(self, event):
+        """Send typing status to WebSocket"""
+        await self.send(text_data=json.dumps({
+            "typing_status": {
+                "username": event["user"].username,
+                "status": event["typing_status"]
+            }
+        }))
 
 
 class ChatListConsumer(AsyncWebsocketConsumer):
