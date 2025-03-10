@@ -5,19 +5,31 @@ from rest_framework import serializers
 from chat_app.models import Message, Chat, ChatUser
 
 
-
 class CreateMessageSerializer(serializers.ModelSerializer):
-
     sender = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    text = serializers.CharField()
+    text = serializers.CharField(max_length=4096)
+    chat = serializers.PrimaryKeyRelatedField(queryset=Chat.objects.all())
 
     class Meta:
         model = Message
-        fields = (
-            'sender',
-            'chat',
-            'text',
-        )
+        fields = ('sender', 'chat', 'text')
+
+    def validate_chat(self, value):
+        """Ensure user is a member of the chat"""
+        user = self.context['request'].user
+
+        if not value.members.filter(id=user.id).exists():
+            raise serializers.ValidationError("You are not a member of this chat")
+
+        return value
+
+    def validate_text(self, value):
+        """Sanitize and validate message text"""
+        # Add text sanitization if needed
+        if not value.strip():
+            raise serializers.ValidationError("Message cannot be empty")
+
+        return value
 
 
 class MessageSerializer(serializers.ModelSerializer):
