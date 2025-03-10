@@ -39,13 +39,11 @@ def create_message(chat, user, text):
     )
 
 
-class Consumer(AsyncWebsocketConsumer):
+class MessagesConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        print("Trying to connect...")
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
 
         # Accept the connection first (Close it if auth fails later)
-        print("Successfully connected")
         await self.accept()
 
 
@@ -55,21 +53,17 @@ class Consumer(AsyncWebsocketConsumer):
             f"chat_{self.chat_id}", self.channel_name
         )
 
-        print("Successfully disconnected")
-
     async def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
 
         # Check if this is an authentication message
         if 'token' in text_data_json:
-            print("Trying to authenticate ...")
 
             token = text_data_json['token']
             self.user = await get_user_from_token(token)
 
             # If authentication failed, close the connection
             if isinstance(self.user, AnonymousUser):
-                print("Invalid token")
                 await self.close(code=4001)
                 return
 
@@ -82,24 +76,15 @@ class Consumer(AsyncWebsocketConsumer):
                     f"chat_{self.chat_id}", self.channel_name
                 )
 
-                print("Successfully authenticated. Welcome, {}.".format(self.user.first_name))
-
             except Exception as e:
-                print("Failed to authenticate: {}".format(e))
                 await self.close(code=4002)
                 return
 
         # Handle regular messages after authentication
         elif hasattr(self, 'user') and not isinstance(self.user, AnonymousUser):
             if 'text' in text_data_json:
-                print("Handle regular message  ...")
 
                 text = text_data_json['text']
-
-                print(self.user)
-                print(self.chat)
-                print(text)
-
                 message = await create_message(self.chat, self.user, text)
 
                 event = {
@@ -114,7 +99,6 @@ class Consumer(AsyncWebsocketConsumer):
 
         else:
             # If message received before authentication, close connection
-            print("Deny messages before authentication")
             await self.close(code=4003)  # Not authenticated
 
     async def message_handler(self, event):
@@ -129,3 +113,46 @@ class Consumer(AsyncWebsocketConsumer):
                 "sent_at": message.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
         }))
+
+
+class ChatListConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        # Accept the connection first (Close it if auth fails later)
+        await self.accept()
+        self.user = None
+
+    async def disconnect(self, close_code):
+        if self.user is not None:
+            await self.channel_layer.group_discard(
+                f"user_{self.user.id}", self.channel_name
+            )
+
+    async def receive(self, text_data=None, bytes_data=None):
+        text_data_json = json.loads(text_data)
+
+        # Check if this is an authentication message
+        if 'token' in text_data_json:
+
+            token = text_data_json['token']
+            self.user = await get_user_from_token(token)
+
+            # If authentication failed, close the connection
+            if isinstance(self.user, AnonymousUser):
+                await self.close(code=4001)
+                return
+
+            # Get chat object after successful authentication
+            try:
+                await self.channel_layer.group_add(
+                    f"user_{self.user.id}", self.channel_name
+                )
+            except Exception as e:
+                await self.close(code=4002)
+                return
+        else:
+            # If message received without authentication, close connection
+            await self.close(code=4003)  # Not authenticated
+
+    async def chat_list_update(self, event):
+        # Send the update to the WebSocket
+        await self.send(text_data=json.dumps(event["message"]))
