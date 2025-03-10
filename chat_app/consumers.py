@@ -1,15 +1,25 @@
 import json
-from pprint import pprint
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+
 from django.contrib.auth.models import User, AnonymousUser
 from django.shortcuts import get_object_or_404
+
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
-from chat_app.models import Chat, Message
+from chat_app.models import Chat, Message, ChatUser
 
+
+@database_sync_to_async
+def update_chat_user_last_read(chat, user, message):
+    print("Updating chat user last read")
+    chat_user = ChatUser.objects.filter(chat=chat, user=user).first()
+    print(chat_user.last_read_message)
+    chat_user.last_read_message = message
+    print(chat_user.last_read_message)
+    chat_user.save()
 
 @database_sync_to_async
 def get_user_from_token(token_key):
@@ -97,6 +107,8 @@ class MessagesConsumer(AsyncWebsocketConsumer):
                 )
 
 
+
+
         else:
             # If message received before authentication, close connection
             await self.close(code=4003)  # Not authenticated
@@ -113,6 +125,14 @@ class MessagesConsumer(AsyncWebsocketConsumer):
                 "sent_at": message.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
         }))
+
+        await self.update_last_read_message(message)
+
+    async def update_last_read_message(self, message):
+        """Fetch the latest message and update last_read_message for the user"""
+
+        if message:
+            await update_chat_user_last_read(self.chat, self.user, message)
 
 
 class ChatListConsumer(AsyncWebsocketConsumer):

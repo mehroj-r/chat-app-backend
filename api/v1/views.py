@@ -79,10 +79,7 @@ class ChatMessagesListAPIView(generics.ListAPIView):
 
         queryset = self.get_queryset()
 
-        unread_messages = queryset.filter(is_read=False).exclude(id=request.user.id)
-        unread_messages.update(is_read=True)
-
-        ChatUser.objects.filter(chat_id=self.kwargs['chat_id'], user=request.user).update(unread_message_count=0)
+        ChatUser.objects.filter(chat_id=self.kwargs['chat_id'], user=request.user).update(last_read_message=queryset.last())
 
         serializer = self.get_serializer(queryset, many=True)
 

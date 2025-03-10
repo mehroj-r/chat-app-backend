@@ -54,14 +54,29 @@ class ChatSerializer(serializers.ModelSerializer):
         )
 
     def get_unread_count(self, obj):
-        return Message.objects.filter(chat=obj, is_read=False).count()
+        request = self.context.get('request')
+        user = request.user if request else None
 
+        if not user:
+            return 0  # Return 0 if request or user is not available
+
+        chat_user = ChatUser.objects.filter(chat=obj, user=user).first()
+
+        if not chat_user:
+            return 0  # Return 0 if user is not part of the chat
+
+        last_read_message = chat_user.last_read_message
+
+        if last_read_message:
+            return Message.objects.filter(chat=obj, created_at__gt=last_read_message.created_at).count()
+        else:
+            return Message.objects.filter(chat=obj).count()  # Count all messages if none have been read
 
     def get_display_name(self, obj):
         request = self.context.get('request')
         user = request.user if request else None
 
-        if obj.type == 'private' and user:
+        if obj.type == Chat.ChatTypeChoices.PRIVATE and user:
             other_member = obj.members.exclude(id=user.id).first()
             return other_member.first_name if other_member else "Anonymous"
         return obj.name

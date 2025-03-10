@@ -27,7 +27,6 @@ class Chat(models.Model):
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="messages")
-    is_read = models.BooleanField(default=False)
     text = models.TextField()
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -45,8 +44,7 @@ def update_last_message(sender, instance, created, **kwargs):
 class ChatUser(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='users')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    unread_message_count = models.PositiveIntegerField(default=0)
-    last_read_at = models.DateTimeField(null=True, blank=True)
+    last_read_message = models.ForeignKey(Message, on_delete=models.CASCADE, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
