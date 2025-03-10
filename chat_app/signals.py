@@ -1,5 +1,7 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.db.models import Q, F
+from django.db.models.aggregates import Count
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -20,18 +22,24 @@ def notify_chat_list(sender, instance, created, **kwargs):
     sent_at = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
     channel_layer = get_channel_layer()
 
-    for user in chat.members.all():
-        chat_user = ChatUser.objects.filter(chat=chat, user=user).first()
+    # Fetch all chat users with related user and last_read_message with unread_count in a single query
+    chat_users = ChatUser.objects.filter(chat=chat).select_related(
+        'user', 'last_read_message'
+    ).annotate(
+    unread_count=Count(
+        'chat__messages',
+        filter=Q(
+            chat__messages__created_at__gt=F('last_read_message__created_at')
+        ) | Q(last_read_message__isnull=True)
+    )
+)
 
-        if chat_user and chat_user.last_read_message:
-            unread_count = Message.objects.filter(
-                chat=chat, created_at__gt=chat_user.last_read_message.created_at
-            ).count()
-        else:
-            unread_count = Message.objects.filter(chat=chat).count()
+    # Send updates to all users in a single loop, using pre-calculated data
+    for chat_user in chat_users:
+        user_id = chat_user.user.id
 
         async_to_sync(channel_layer.group_send)(
-            f"user_{user.id}",
+            f"user_{user_id}",
             {
                 "type": "chat_list_update",
                 "message": {
@@ -44,7 +52,7 @@ def notify_chat_list(sender, instance, created, **kwargs):
                         "sent_at": sent_at,
                     },
                     "type": chat.type,
-                    "unread_count": unread_count,
+                    "unread_count": chat_user.unread_count,
                 },
             },
         )

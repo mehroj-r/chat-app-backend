@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.100.3', '*'] # Allow local h
 # Application definition
 
 INSTALLED_APPS = [
+    'silk',
     'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'silk.middleware.SilkyMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
