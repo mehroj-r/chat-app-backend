@@ -1,5 +1,4 @@
 from django.contrib.auth.models import User
-from django.db import models
 
 from rest_framework import serializers
 
@@ -42,6 +41,7 @@ class ChatSerializer(serializers.ModelSerializer):
 
     last_message = MessageSerializer()
     display_name = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
@@ -49,8 +49,13 @@ class ChatSerializer(serializers.ModelSerializer):
             'id',
             'last_message',
             'type',
-            'display_name'
+            'display_name',
+            'unread_count',
         )
+
+    def get_unread_count(self, obj):
+        return Message.objects.filter(chat=obj, is_read=False).count()
+
 
     def get_display_name(self, obj):
         request = self.context.get('request')

@@ -13,9 +13,8 @@ def notify_chat_list(sender, instance, created, **kwargs):
     sender_username = instance.sender.username
     text = instance.text
     sent_at = instance.created_at.strftime("%Y-%m-%d %H:%M:%S")
+    unread_count = Message.objects.filter(chat=chat, is_read=False).count()
     channel_layer = get_channel_layer()
-
-    print("Sending chat list ...")
 
     for user in chat.members.all():
         async_to_sync(channel_layer.group_send)(
@@ -32,6 +31,7 @@ def notify_chat_list(sender, instance, created, **kwargs):
                         "sent_at": sent_at,
                     },
                     "type": chat.type,
+                    "unread_count": unread_count,
                 }
             }
         )

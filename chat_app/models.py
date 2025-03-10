@@ -23,12 +23,6 @@ class Chat(models.Model):
     def get_or_create(cls, user1, user2):
         pass
 
-    @property
-    def display_name(self):
-        if self.type == 'private' and self.members.count() == 2:
-            return self.members.exclude(id=self.z.id).first().username
-        return self.name
-
 
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
