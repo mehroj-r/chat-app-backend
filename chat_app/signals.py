@@ -26,13 +26,13 @@ def notify_chat_list(sender, instance, created, **kwargs):
     chat_users = ChatUser.objects.filter(chat=chat).select_related(
         'user', 'last_read_message'
     ).annotate(
-    unread_count=Count(
-        'chat__messages',
-        filter=Q(
-            chat__messages__created_at__gt=F('last_read_message__created_at')
-        ) | Q(last_read_message__isnull=True)
+        unread_count=Count(
+            'chat__messages',
+            filter=Q(
+                chat__messages__created_at__gt=F('last_read_message__created_at')
+            ) | Q(last_read_message__isnull=True)
+        )
     )
-)
 
     # Send updates to all users in a single loop, using pre-calculated data
     for chat_user in chat_users:

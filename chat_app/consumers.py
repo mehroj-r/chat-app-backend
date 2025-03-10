@@ -1,6 +1,5 @@
 import json
 
-from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 from django.contrib.auth.models import User, AnonymousUser
@@ -10,16 +9,16 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 from chat_app.models import Chat, Message, ChatUser
-
+from channels.db import database_sync_to_async
 
 @database_sync_to_async
-def update_chat_user_last_read(chat, user, message):
-    print("Updating chat user last read")
+def update_chat_user_last_read(chat, user, message_id):
     chat_user = ChatUser.objects.filter(chat=chat, user=user).first()
-    print(chat_user.last_read_message)
-    chat_user.last_read_message = message
-    print(chat_user.last_read_message)
-    chat_user.save()
+
+    if chat_user:
+        chat_user.last_read_message_id = message_id
+        chat_user.save()
+
 
 @database_sync_to_async
 def get_user_from_token(token_key):
@@ -97,9 +96,17 @@ class MessagesConsumer(AsyncWebsocketConsumer):
                 text = text_data_json['text']
                 message = await create_message(self.chat, self.user, text)
 
+                message_info =  {
+                    "id": message.id,
+                    "sender_name": message.sender.first_name,
+                    "sender_username": message.sender.username,
+                    "text": message.text,
+                    "sent_at": message.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                }
+
                 event = {
                     'type': 'message_handler',
-                    'message': message,
+                    'message': message_info,
                 }
 
                 await self.channel_layer.group_send(
@@ -111,7 +118,7 @@ class MessagesConsumer(AsyncWebsocketConsumer):
 
                 event = {
                     'type': 'typing_status_handler',
-                    'user': self.user,
+                    'username': self.user.username,
                     'typing_status': typing_status,
                 }
 
@@ -124,31 +131,25 @@ class MessagesConsumer(AsyncWebsocketConsumer):
             await self.close(code=4003)  # Not authenticated
 
     async def message_handler(self, event):
-        message = event['message']
 
         await self.send(text_data=json.dumps({
-            "message": {
-                "id": message.id,
-                "sender_name": message.sender.first_name,
-                "sender_username": message.sender.username,
-                "text": message.text,
-                "sent_at": message.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            }
+            "message": event['message']
         }))
 
-        await self.update_last_read_message(message)
+        await self.update_last_read_message(event['message']['id'])
 
-    async def update_last_read_message(self, message):
+    async def update_last_read_message(self, message_id):
         """Fetch the latest message and update last_read_message for the user"""
-        if message:
-            await update_chat_user_last_read(self.chat, self.user, message)
+
+        if message_id:
+            await update_chat_user_last_read(self.chat, self.user, message_id)
 
 
     async def typing_status_handler(self, event):
         """Send typing status to WebSocket"""
         await self.send(text_data=json.dumps({
             "typing_status": {
-                "username": event["user"].username,
+                "username": event["username"],
                 "status": event["typing_status"]
             }
         }))
