@@ -1,5 +1,3 @@
-/app.dot
-/app.svg
 /.venv
 /chat_app/migrations/0001_initial.py
 /chat_app/migrations/0002_chat_chat_type.py

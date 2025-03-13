@@ -1,30 +1,50 @@
-# Use Python 3.12.2 image based on Debian Bullseye in its slim variant as the base image
-FROM python:3.12.2-slim
+ARG PYTHON_VERSION=3.12.2
+FROM python:${PYTHON_VERSION}-slim AS base
 
-# Set environment variables using key=value format
-ENV PYTHONBUFFERED=1
-ENV PORT=8080
+# Prevents Python from writing pyc files.
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV POST=8080
 
-# Set the working directory within the container to /app for any subsequent commands
+# Keeps Python from buffering stdout and stderr to avoid situations where
+# the application crashes without emitting any logs due to buffering.
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# Copy the entire current directory contents into the container at /app
-COPY . /app/
+# Create a non-privileged user that the app will run under.
+# See https://docs.docker.com/go/dockerfile-user-best-practices/
+ARG UID=10001
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    appuser
 
 # Upgrade pip to ensure we have the latest version for installing dependencies
 RUN pip install --upgrade pip
 
-# Install dependencies from the requirements.txt file to ensure our Python environment is ready
-RUN pip install -r requirements.txt
+# Download dependencies as a separate step to take advantage of Docker's caching.
+# Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
+# Leverage a bind mount to requirements.txt to avoid having to copy them into
+# into this layer.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=bind,source=requirements.txt,target=requirements.txt \
+    python -m pip install -r requirements.txt
 
-# Migrate database
-RUN python manage.py migrate
+# Copy the source code into the container.
+COPY . .
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Use JSON format for CMD to allow proper signal handling
-CMD ["gunicorn", "DjangoProject.wsgi:application", "--bind", "0.0.0.0:8080"]
+# Switch to the non-privileged user to run the application.
+USER appuser
 
-# Inform Docker that the container listens on the specified network port at runtime
+# Expose the port that the application listens on.
 EXPOSE $PORT
+
+# Run the application.
+CMD ["gunicorn", "DjangoProject.wsgi:application", "--bind", "0.0.0.0:8080"]

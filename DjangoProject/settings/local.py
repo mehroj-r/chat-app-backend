@@ -84,12 +84,6 @@ TEMPLATES = [
 # WSGI_APPLICATION = 'DjangoProject.wsgi.application'
 ASGI_APPLICATION = "DjangoProject.asgi.application"
 
-# CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels.layers.InMemoryChannelLayer',
-#     }
-# }
-
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
