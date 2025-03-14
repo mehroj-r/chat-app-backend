@@ -1,4 +1,5 @@
 /.venv
+/.idea
 /chat_app/migrations/0001_initial.py
 /chat_app/migrations/0002_chat_chat_type.py
 /chat_app/migrations/0003_rename_chat_type_chat_type_chat_name.py

@@ -1,0 +1,57 @@
+services:
+  backend:
+    build: .
+    container_name: backend_django
+    ports:
+      - "8080:8080"
+    environment:
+      - PIPELINE=production
+      - DB_IP=db
+      - DB_PORT=5432
+      - DB_NAME=chat_app_db
+      - DB_USER_NM=postgres
+      - DB_USER_PW=1649
+      - SECRET_KEY=Very_Secret_Key_Secured
+      - REDIS_IP=redis
+      - REDIS_PORT=6379
+      - DJANGO_SETTINGS_MODULE=DjangoProject.settings
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app-network
+
+  db:
+    image: postgres:latest
+    container_name: db_postgresql
+    environment:
+      - POSTGRES_DB=chat_app_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1649
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:latest
+    container_name: ws-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server
+    restart: always
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  redis-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

@@ -32,7 +32,8 @@ DB_USER_NM = get_secret("DB_USER_NM")
 DB_USER_PW = get_secret("DB_USER_PW")
 DB_IP = get_secret("DB_IP")
 DB_PORT = get_secret("DB_PORT")
-
+REDIS_PORT = int(get_secret("REDIS_PORT"))
+REDIS_IP = get_secret("REDIS_IP")
 
 DATABASES = {
     "default": {
@@ -50,6 +51,20 @@ DATABASES = {
 DEBUG = False
 
 ALLOWED_HOSTS = ['*']
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
 
 # Application definition
 INSTALLED_APPS = [
@@ -108,7 +123,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [(REDIS_IP, REDIS_PORT)],
         },
     },
 }

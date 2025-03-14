@@ -26,10 +26,7 @@ RUN adduser \
 # Upgrade pip to ensure we have the latest version for installing dependencies
 RUN pip install --upgrade pip
 
-# Download dependencies as a separate step to take advantage of Docker's caching.
-# Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
-# Leverage a bind mount to requirements.txt to avoid having to copy them into
-# into this layer.
+# Download dependencies.
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
@@ -40,6 +37,12 @@ COPY . .
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
+# Ensure migrations directory exists and has proper permissions
+RUN mkdir -p /app/chat_app/migrations && \
+    touch /app/chat_app/migrations/__init__.py && \
+    chown -R appuser:appuser /app/chat_app/migrations && \
+    chmod -R 755 /app/chat_app/migrations
+
 # Switch to the non-privileged user to run the application.
 USER appuser
 
@@ -47,4 +50,4 @@ USER appuser
 EXPOSE $PORT
 
 # Run the application.
-CMD ["gunicorn", "DjangoProject.wsgi:application", "--bind", "0.0.0.0:8080"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8080", "DjangoProject.asgi:application"]
