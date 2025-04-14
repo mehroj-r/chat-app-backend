@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 
 from rest_framework import serializers
 
-from chat_app.models import Message, Chat, ChatUser
+from chat_app.models import Message, Chat, ChatUser, Profile
 
 
 class CreateMessageSerializer(serializers.ModelSerializer):
@@ -109,6 +109,9 @@ class ChatUserSerializer(serializers.ModelSerializer):
         )
 
 class UserSerializer(serializers.ModelSerializer):
+
+    password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
         fields = (
@@ -116,5 +119,25 @@ class UserSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
-            'email'
+            'email',
+            'password'
+        )
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = (
+            'bio',
+            'image',
+        )
+
+
+class UserProfileRegisterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'first_name',
+            'last_name',
+            'email',
         )

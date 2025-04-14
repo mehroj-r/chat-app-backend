@@ -21,8 +21,26 @@ class Chat(models.Model):
 
     @classmethod
     def get_or_create(cls, user1, user2):
-        pass
+        chat = cls.objects.filter(
+            type=cls.ChatTypeChoices.PRIVATE,
+            members=user1
+        ).filter(members=user2).first()
 
+        if chat:
+            return chat
+
+        # Create a new chat
+        chat = cls.objects.create(
+            name=user2.first_name,
+            type=cls.ChatTypeChoices.PRIVATE
+        )
+
+        ChatUser.objects.bulk_create([
+            ChatUser(chat=chat, user=user1),
+            ChatUser(chat=chat, user=user2)
+        ])
+
+        return chat
 
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -38,8 +56,6 @@ def update_last_message(sender, instance, created, **kwargs):
     if created:
         instance.chat.last_message = instance
         instance.chat.save()
-
-
 
 class ChatUser(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='users')
@@ -60,7 +76,6 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.user.username
-
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):

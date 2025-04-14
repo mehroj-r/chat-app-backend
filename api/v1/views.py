@@ -1,10 +1,12 @@
+from django.contrib.auth.models import User
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from chat_app.models import Chat, Message, ChatUser
-from .serializers import CreateMessageSerializer, ChatSerializer, MessageSerializer, UserSerializer, ChatUserSerializer
+from chat_app.models import Chat, Message, ChatUser, Profile
+from .serializers import CreateMessageSerializer, ChatSerializer, MessageSerializer, UserSerializer, ChatUserSerializer, \
+    ProfileSerializer
 
 
 class SendMessageView(generics.CreateAPIView):
@@ -93,3 +95,62 @@ class CurrentUserView(APIView):
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
+
+
+class UserRegistrationView(generics.CreateAPIView):
+    permission_classes = []
+    serializer_class = UserSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        print(request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()
+            user.set_password(request.data['password'])
+            user.save()
+            return Response(status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateProfileView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileSerializer
+
+    def get_object(self):
+        return Profile.objects.get(user=self.request.user)
+
+    def put(self, request, *args, **kwargs):
+        serializer = self.serializer_class(self.get_object(), data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserSearchView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        query = self.request.query_params.get('query', '')
+        return User.objects.filter(username__icontains=query)[:10]
+
+class GetCreateChatView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChatSerializer
+
+    def get_object(self):
+        user_id = self.request.data['user_id']
+ 
+        return Chat.get_or_create(
+            user1=self.request.user,
+            user2=User.objects.get(id=user_id)
+        )
+
+    def put(self, request, *args, **kwargs):
+        chat = self.get_object()
+        serializer = self.serializer_class(chat)
+        return Response(serializer.data, status=status.HTTP_200_OK)
