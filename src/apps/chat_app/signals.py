@@ -5,7 +5,7 @@ from django.db.models.aggregates import Count
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from chat_app.models import Message, ChatUser
+from apps.chat_app.models import Message, ChatUser
 
 
 @receiver(post_save, sender=Message)

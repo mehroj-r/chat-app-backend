@@ -7,20 +7,20 @@ from django.dispatch import receiver
 class Chat(models.Model):
 
     class ChatTypeChoices(models.TextChoices):
-        PRIVATE = 'private'
-        GROUP = 'group'
+        PRIVATE = 'PRIVATE', 'Private'
+        GROUP = 'GROUP', 'Group'
 
-
-    members = models.ManyToManyField(User, related_name='members', through='ChatUser')
+    members = models.ManyToManyField(User, related_name='chats', through='ChatUser')
     name = models.CharField(max_length=100, null=True, blank=True)
     last_message = models.ForeignKey('Message', on_delete=models.CASCADE, related_name="+", null=True, blank=True)
-    type = models.CharField(choices=ChatTypeChoices, max_length=10)
+    type = models.CharField(choices=ChatTypeChoices.choices, max_length=10)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     @classmethod
     def get_or_create(cls, user1, user2):
+
         chat = cls.objects.filter(
             type=cls.ChatTypeChoices.PRIVATE,
             members=user1

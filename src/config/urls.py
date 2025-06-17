@@ -1,5 +1,5 @@
 """
-URL configuration for DjangoProject project.
+URL configuration for config project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.1/topics/http/urls/
@@ -20,7 +20,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('chat_app.urls')),
-    path('api/', include('api.urls')),
-    path('silk/', include('silk.urls', namespace='silk'))
+    path('', include('apps.chat_app.urls')),
+    path('api/', include('apps.api.urls'))
 ]

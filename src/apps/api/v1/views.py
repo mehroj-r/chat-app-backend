@@ -4,8 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from chat_app.models import Chat, Message, ChatUser, Profile
-from .serializers import CreateMessageSerializer, ChatSerializer, MessageSerializer, UserSerializer, ChatUserSerializer, \
+from apps.chat_app.models import Chat, Message, ChatUser, Profile
+from apps.api.v1.serializers import CreateMessageSerializer, ChatSerializer, MessageSerializer, UserSerializer, ChatUserSerializer, \
     ProfileSerializer
 
 
@@ -103,15 +103,19 @@ class UserRegistrationView(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
-        print(request.data)
 
         if serializer.is_valid():
-            user = serializer.save()
-            user.set_password(request.data['password'])
-            user.save()
+            self.save_user(request, serializer)
             return Response(status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @staticmethod
+    def save_user(request, serializer):
+        user = serializer.save()
+        user.set_password(request.data['password'])
+        user.save()
+        return user
 
 
 class UpdateProfileView(generics.UpdateAPIView):

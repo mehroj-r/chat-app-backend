@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 
 from rest_framework import serializers
 
-from chat_app.models import Message, Chat, ChatUser, Profile
+from apps.chat_app.models import Message, Chat, ChatUser, Profile
 
 
 class CreateMessageSerializer(serializers.ModelSerializer):

@@ -14,7 +14,7 @@ services:
       - SECRET_KEY=Very_Secret_Key_Secured
       - REDIS_IP=redis
       - REDIS_PORT=6379
-      - DJANGO_SETTINGS_MODULE=DjangoProject.settings
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
     depends_on:
       - db
       - redis

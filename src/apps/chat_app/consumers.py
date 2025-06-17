@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
-from chat_app.models import Chat, Message, ChatUser
+from apps.chat_app.models import Chat, Message, ChatUser
 from channels.db import database_sync_to_async
 
 @database_sync_to_async
@@ -52,7 +52,7 @@ class MessagesConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
 
-        # Accept the connection first (Close it if auth fails later)
+        # Accept the conneclose it if auth ftion first (Cails later)
         await self.accept()
 
 
