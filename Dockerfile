@@ -38,10 +38,10 @@ COPY . .
 RUN python manage.py collectstatic --noinput
 
 # Ensure migrations directory exists and has proper permissions
-RUN mkdir -p /app/chat_app/migrations && \
-    touch /app/chat_app/migrations/__init__.py && \
-    chown -R appuser:appuser /app/chat_app/migrations && \
-    chmod -R 755 /app/chat_app/migrations
+RUN mkdir -p /app/chat/migrations && \
+    touch /app/chat/migrations/__init__.py && \
+    chown -R appuser:appuser /app/chat/migrations && \
+    chmod -R 755 /app/chat/migrations
 
 # Switch to the non-privileged user to run the application.
 USER appuser

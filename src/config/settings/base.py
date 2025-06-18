@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 
+from apps import account
 from config.settings import get_secret
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
@@ -29,11 +30,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'channels',
-    'apps.chat_app',
     'rest_framework',
-    'apps.api',
+    'apps.chat',
+    'apps.account',
 ]
 
 MIDDLEWARE = [
@@ -105,13 +107,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Custom user model
+AUTH_USER_MODEL = 'account.User'
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tashkent'
 USE_I18N = True
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
@@ -121,6 +124,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# CORS settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:8000",
@@ -129,6 +133,7 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+# REST Framework settings
 REST_FRAMEWORK = {
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -138,6 +143,7 @@ REST_FRAMEWORK = {
 
 }
 
+# JWT settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -147,6 +153,7 @@ SIMPLE_JWT = {
 }
 
 
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -160,3 +167,8 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+LOG_DIR = BASE_DIR / 'etc' / 'logs'
+
+# Image upload settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'etc' / 'media'

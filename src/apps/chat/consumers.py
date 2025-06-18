@@ -2,13 +2,14 @@ import json
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from django.contrib.auth.models import User, AnonymousUser
+from apps.account.models import User
+from django.contrib.auth.models import AnonymousUser
 from django.shortcuts import get_object_or_404
 
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
-from apps.chat_app.models import Chat, Message, ChatUser
+from apps.chat.models import Chat, Message, ChatUser
 from channels.db import database_sync_to_async
 
 @database_sync_to_async

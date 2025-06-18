@@ -1,7 +1,9 @@
-from django.contrib.auth.models import AbstractUser, User
-from django.db import models
+
+from django.db import models, transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+from apps.account.models import User
 
 
 class Chat(models.Model):
@@ -29,16 +31,17 @@ class Chat(models.Model):
         if chat:
             return chat
 
-        # Create a new chat
-        chat = cls.objects.create(
-            name=user2.first_name,
-            type=cls.ChatTypeChoices.PRIVATE
-        )
+        # Create a new chat and chatusers
+        with transaction.atomic():
 
-        ChatUser.objects.bulk_create([
-            ChatUser(chat=chat, user=user1),
-            ChatUser(chat=chat, user=user2)
-        ])
+            chat = cls.objects.create(
+                name=user2.first_name,
+                type=cls.ChatTypeChoices.PRIVATE
+            )
+            ChatUser.objects.bulk_create([
+                ChatUser(chat=chat, user=user1),
+                ChatUser(chat=chat, user=user2)
+            ])
 
         return chat
 
@@ -58,7 +61,7 @@ def update_last_message(sender, instance, created, **kwargs):
         instance.chat.save()
 
 class ChatUser(models.Model):
-    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='users')
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     last_read_message = models.ForeignKey(Message, on_delete=models.CASCADE, null=True)
 
@@ -66,18 +69,3 @@ class ChatUser(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
-    bio = models.CharField(max_length=100, blank=True)
-    image = models.ImageField(upload_to="user_images", default="default.jpg")
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.user.username
-
-@receiver(post_save, sender=User)
-def create_or_update_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)

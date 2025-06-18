@@ -1,18 +1,16 @@
-from django.contrib.auth.models import User
-
 from rest_framework import serializers
 
-from apps.chat_app.models import Message, Chat, ChatUser, Profile
+from apps.chat.models import Chat, Message, ChatUser
 
 
 class CreateMessageSerializer(serializers.ModelSerializer):
     sender = serializers.HiddenField(default=serializers.CurrentUserDefault())
     text = serializers.CharField(max_length=4096)
-    chat = serializers.PrimaryKeyRelatedField(queryset=Chat.objects.all())
+    chat_id = serializers.IntegerField()
 
     class Meta:
         model = Message
-        fields = ('sender', 'chat', 'text')
+        fields = ('sender', 'chat_id', 'text')
 
     def validate_chat(self, value):
         """Ensure user is a member of the chat"""
@@ -106,38 +104,4 @@ class ChatUserSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
-        )
-
-class UserSerializer(serializers.ModelSerializer):
-
-    password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = User
-        fields = (
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-            'email',
-            'password'
-        )
-
-class ProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profile
-        fields = (
-            'bio',
-            'image',
-        )
-
-
-class UserProfileRegisterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = (
-            'username',
-            'first_name',
-            'last_name',
-            'email',
         )
