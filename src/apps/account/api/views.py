@@ -1,13 +1,12 @@
 from django.db import transaction
 from django.db.models import Q
 
-from apps.account.models import User
-
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 
 from apps.account.api.serializers import UserSerializer, ProfileSerializer
-from apps.account.models import Profile
+from apps.account.models import User, Profile
+
 from core.dataclasses import SuccessResponse, ErrorResponse
 from core.utils.logger import logger
 
@@ -54,6 +53,7 @@ class CurrentUserView(generics.RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         serializer = self.serializer_class(self.request.user)
         return SuccessResponse({"user": serializer.data}, status=status.HTTP_200_OK)
+
 
 class UserSearchView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]

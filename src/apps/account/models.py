@@ -14,13 +14,19 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampedModel, SoftDeleteModel
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=15, unique=True)
 
+    is_verified = models.BooleanField(default=False)
+
     USERNAME_FIELD = 'phone'
     REQUIRED_FIELDS = ['first_name']
+
+    # For Django Admin
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
 
     objects = managers.UserManager()
 
     def __str__(self):
-        return self.email
+        return self.phone
 
 
 class Profile(TimestampedModel, SoftDeleteModel):

@@ -8,13 +8,15 @@ from apps.chat.choices import ChatTypeChoices, ChatRoleChoices
 class Chat(models.Model):
 
     members = models.ManyToManyField(User, related_name='chats', through='ChatUser')
-    name = models.CharField(max_length=100, null=True, blank=True)
+    name = models.CharField(max_length=100)
     last_message = models.ForeignKey('Message', on_delete=models.CASCADE, related_name="+", null=True, blank=True)
     type = models.CharField(choices=ChatTypeChoices.choices, max_length=10)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return self.name
 
 class Message(models.Model):
 
@@ -25,6 +27,8 @@ class Message(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return f"{self.text[:20]} ..." if len(self.text) > 20 else self.text
 
 class ChatUser(models.Model):
 
@@ -35,5 +39,8 @@ class ChatUser(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user} in {self.chat.name} as {self.role}."
 
 
