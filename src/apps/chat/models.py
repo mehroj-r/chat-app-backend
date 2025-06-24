@@ -61,9 +61,16 @@ def update_last_message(sender, instance, created, **kwargs):
         instance.chat.save()
 
 class ChatUser(models.Model):
+
+    class RoleChoices(models.TextChoices):
+        CREATOR = 'CREATOR', 'Creator'
+        ADMIN = 'ADMIN', 'Admin'
+        MEMBER = 'MEMBER', 'Member'
+
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     last_read_message = models.ForeignKey(Message, on_delete=models.CASCADE, null=True)
+    role = models.CharField(choices=RoleChoices.choices, default=RoleChoices.MEMBER, max_length=10)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
