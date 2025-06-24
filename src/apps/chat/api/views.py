@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from apps.account.models import User
 from apps.chat.api.serializers import ChatSerializer, ChatUserSerializer, MessageSerializer, CreateMessageSerializer
 from apps.chat.models import Chat, ChatUser, Message
+from apps.chat.services.chat import ChatService
 from core.dataclasses import SuccessResponse, ErrorResponse
 
 
@@ -21,7 +22,7 @@ class ChatListCreateAPIView(generics.ListCreateAPIView):
         if user_id == self.request.user.id:
             raise ValueError("You cannot create a chat with yourself.")
 
-        return Chat.get_or_create(
+        return ChatService.get_or_create_private_chat(
             user1=self.request.user,
             user2=User.objects.get(id=user_id)
         )

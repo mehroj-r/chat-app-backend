@@ -56,3 +56,10 @@ def notify_chat_list(sender, instance, created, **kwargs):
                 },
             },
         )
+
+@receiver(post_save, sender=Message)
+def update_last_message(sender, instance, created, **kwargs):
+
+    if created:
+        instance.chat.last_message = instance
+        instance.chat.save()

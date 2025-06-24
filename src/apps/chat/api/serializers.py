@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.chat.choices import ChatTypeChoices
 from apps.chat.models import Chat, Message, ChatUser
 
 
@@ -21,7 +22,8 @@ class CreateMessageSerializer(serializers.ModelSerializer):
 
         return value
 
-    def validate_text(self, value):
+    @staticmethod
+    def validate_text(value):
         """Sanitize and validate message text"""
         # Add text sanitization if needed
         if not value.strip():
@@ -86,7 +88,7 @@ class ChatSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request else None
 
-        if obj.type == Chat.ChatTypeChoices.PRIVATE and user:
+        if obj.type == ChatTypeChoices.PRIVATE and user:
             other_member = obj.members.exclude(id=user.id).first()
             return other_member.first_name if other_member else "Anonymous"
         return obj.name
