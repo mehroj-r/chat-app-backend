@@ -20,7 +20,7 @@ from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 
 # Import routing after Django is fully set up
-from apps.chat.websocket import routing as chat_urls
+from core.websocket import routing as chat_urls
 
 django_asgi_app = get_asgi_application()
 

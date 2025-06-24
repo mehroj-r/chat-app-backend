@@ -1,15 +1,22 @@
 import json
 
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.layers import get_channel_layer
 from django.contrib.auth.models import AnonymousUser
 
 from apps.chat.utils.async_utils import (
     update_chat_user_last_read, get_chat, create_message
 )
+from core.websocket.client import WSClient
+
 
 class MessagesConsumer(AsyncWebsocketConsumer):
+    ws_client = WSClient(channel_layer=get_channel_layer())
+    chat = None
+    user = None
+
     async def connect(self):
-        self.chat_id = self.scope['url_route']['kwargs']['chat_id']
+        chat_id = self.scope['url_route']['kwargs']['chat_id']
         self.user = self.scope.get('user')
 
         # Check if user is authenticated
@@ -17,26 +24,20 @@ class MessagesConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)  # Unauthorized
             return
 
-        # Get chat object
+        # Check if chat exists
         try:
-            self.chat = await get_chat(self.chat_id)
+            self.chat = await get_chat(chat_id)
 
             # Add to group and accept connection
-            await self.channel_layer.group_add(
-                f"chat_{self.chat_id}", self.channel_name
-            )
+            await self.ws_client.add_to_group(f"chat_{chat_id}", self.channel_name)
             await self.accept()
-
-        except Exception as e:
+        except Exception:
             await self.close(code=4002)
             return
 
 
     async def disconnect(self, close_code):
-
-        await self.channel_layer.group_discard(
-            f"chat_{self.chat_id}", self.channel_name
-        )
+        await self.ws_client.remove_from_group(f"chat_{self.chat.id}", self.channel_name)
 
     async def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
@@ -58,8 +59,8 @@ class MessagesConsumer(AsyncWebsocketConsumer):
                 'message': message_info,
             }
 
-            return await self.channel_layer.group_send(
-                f"chat_{self.chat_id}", event
+            return await self.ws_client.send_to_group(
+                f"chat_{self.chat.id}", event
             )
 
         # Typing status
@@ -72,8 +73,8 @@ class MessagesConsumer(AsyncWebsocketConsumer):
                 'typing_status': typing_status,
             }
 
-            return await self.channel_layer.group_send(
-                f"chat_{self.chat_id}", event
+            return await self.ws_client.send_to_group(
+                f"chat_{self.chat.id}", event
             )
 
 
@@ -106,6 +107,9 @@ class MessagesConsumer(AsyncWebsocketConsumer):
 
 
 class ChatListConsumer(AsyncWebsocketConsumer):
+    ws_client = WSClient(channel_layer=get_channel_layer())
+    user = None
+
     async def connect(self):
         self.user = self.scope.get('user')
 
@@ -115,20 +119,16 @@ class ChatListConsumer(AsyncWebsocketConsumer):
             return
 
         try:
-            await self.channel_layer.group_add(
-                f"user_{self.user.id}", self.channel_name
-            )
+            await self.ws_client.add_to_group(f"user_{self.user.id}", self.channel_name)
             await self.accept()
 
-        except Exception as e:
+        except Exception:
             await self.close(code=4002)
             return
 
     async def disconnect(self, close_code):
         if self.user is not None:
-            await self.channel_layer.group_discard(
-                f"user_{self.user.id}", self.channel_name
-            )
+            await self.ws_client.remove_from_group(f"user_{self.user.id}", self.channel_name)
 
     async def chat_list_update(self, event):
         # Send the update to the WebSocket
