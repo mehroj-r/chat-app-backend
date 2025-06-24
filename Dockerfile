@@ -1,53 +1,48 @@
-ARG PYTHON_VERSION=3.12.2
-FROM python:${PYTHON_VERSION}-slim AS base
+ARG PYTHON_VERSION=3.13.3
 
-# Prevents Python from writing pyc files.
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV POST=8080
+# ---- Stage 1: Builder ----
+FROM python:${PYTHON_VERSION}-alpine AS builder
 
-# Keeps Python from buffering stdout and stderr to avoid situations where
-# the application crashes without emitting any logs due to buffering.
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apk update && \
+    apk add --no-cache ca-certificates gcc musl-dev lapack-dev && \
+    rm -rf /var/cache/apk/*
+
+WORKDIR /app_build
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+COPY pyproject.toml uv.lock ./
+
+RUN pip install --no-cache-dir --prefix=/python_deps .
+
+COPY . .
+
+RUN apk del gcc musl-dev lapack-dev
+
+# ---- Stage 2: Final runtime image ----
+FROM python:${PYTHON_VERSION}-alpine AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+ENV PYTHONPATH=/app:/python_deps/lib/python3.13/site-packages
+ENV PATH=/python_deps/bin:$PATH
+
+ENV APP_PORT=8085
+
+RUN apk update && \
+    apk add --no-cache ca-certificates && \
+    rm -rf /var/cache/apk/* /tmp/*
 
 WORKDIR /app
 
-# Create a non-privileged user that the app will run under.
-# See https://docs.docker.com/go/dockerfile-user-best-practices/
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
+COPY --from=builder /python_deps /python_deps
+COPY --from=builder /app_build/src/ ./
 
-# Upgrade pip to ensure we have the latest version for installing dependencies
-RUN pip install --upgrade pip
-
-# Download dependencies.
-RUN --mount=type=cache,target=/root/.cache/pip \
-    --mount=type=bind,source=requirements.txt,target=requirements.txt \
-    python -m pip install -r requirements.txt
-
-# Copy the source code into the container.
-COPY . .
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Ensure migrations directory exists and has proper permissions
-RUN mkdir -p /app/chat/migrations && \
-    touch /app/chat/migrations/__init__.py && \
-    chown -R appuser:appuser /app/chat/migrations && \
-    chmod -R 755 /app/chat/migrations
-
-# Switch to the non-privileged user to run the application.
-USER appuser
-
-# Expose the port that the application listens on.
-EXPOSE $PORT
+EXPOSE ${APP_PORT}
 
 # Run the application.
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8080", "DjangoProject.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8080", "config.asgi:application"]

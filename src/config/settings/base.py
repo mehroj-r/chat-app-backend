@@ -9,11 +9,11 @@ SECRET_KEY = get_secret("SECRET_KEY")
 DEBUG = False
 
 # Database settings
-DB_NAME = get_secret("DB_NAME")
-DB_USER_NM = get_secret("DB_USER_NM")
-DB_USER_PW = get_secret("DB_USER_PW")
-DB_IP = get_secret("DB_IP")
-DB_PORT = get_secret("DB_PORT")
+POSTGRES_DB = get_secret("POSTGRES_DB")
+POSTGRES_USER = get_secret("POSTGRES_USER")
+POSTGRES_PASSWORD = get_secret("POSTGRES_PASSWORD")
+POSTGRES_HOST = get_secret("POSTGRES_HOST")
+POSTGRES_PORT = get_secret("POSTGRES_PORT")
 REDIS_PORT = int(get_secret("REDIS_PORT"))
 REDIS_IP = get_secret("REDIS_IP")
 
@@ -53,11 +53,11 @@ MIDDLEWARE = [
 DATABASES = {
     "default": {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': DB_NAME,
-        'USER': DB_USER_NM,
-        'PASSWORD': DB_USER_PW,
-        'HOST': DB_IP,
-        'PORT': DB_PORT,
+        'NAME': POSTGRES_DB,
+        'USER': POSTGRES_USER,
+        'PASSWORD': POSTGRES_PASSWORD,
+        'HOST': POSTGRES_HOST,
+        'PORT': POSTGRES_PORT,
     }
 }
 
