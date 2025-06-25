@@ -1,4 +1,4 @@
-class WSClient():
+class WSClient:
     """Provides higher level abstraction over channel layer operations like sending messages and managing groups."""
 
     def __init__(self, channel_layer=None) -> None:
