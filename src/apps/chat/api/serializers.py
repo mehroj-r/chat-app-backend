@@ -6,6 +6,7 @@ from apps.chat.models import Chat, Message, ChatUser
 
 
 class CreateMessageSerializer(serializers.ModelSerializer):
+
     sender = UserSerializer(default=serializers.CurrentUserDefault())
     text = serializers.CharField(max_length=4096)
     chat_id = serializers.CharField()

@@ -128,6 +128,10 @@ class ChatMembersListView(generics.ListAPIView):
 class ChatMessagesListCreateView(generics.ListCreateAPIView):
 
     permission_classes = [IsAuthenticated]
+    serializer_class = {
+        'GET': MessageSerializer,
+        'POST': CreateMessageSerializer
+    }
 
     def get_object(self):
 
@@ -142,9 +146,7 @@ class ChatMessagesListCreateView(generics.ListCreateAPIView):
             return None
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return CreateMessageSerializer
-        return MessageSerializer
+        return self.serializer_class.get(self.request.method, MessageSerializer)
 
     def post(self, request, *args, **kwargs):
 
