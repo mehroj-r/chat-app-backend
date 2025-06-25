@@ -8,7 +8,18 @@ from apps.chat.services.chat import ChatService
 from core.dataclasses import SuccessResponse, ErrorResponse
 
 
-class ChatListCreateAPIView(generics.ListCreateAPIView):
+class ChatListView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChatSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = Chat.objects.filter(members=self.request.user)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return SuccessResponse({"chats":serializer.data}, status=status.HTTP_200_OK)
+
+class ChatCreatePrivateView(generics.CreateAPIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = ChatSerializer
@@ -27,11 +38,39 @@ class ChatListCreateAPIView(generics.ListCreateAPIView):
             user2=User.objects.get(id=user_id)
         )
 
-    def list(self, request, *args, **kwargs):
-        queryset = Chat.objects.filter(members=self.request.user)
+    def create(self, request, *args, **kwargs):
+        try:
+            chat = self.get_object()
+        except Exception as e:
+            return ErrorResponse({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(queryset, many=True)
-        return SuccessResponse({"chats":serializer.data}, status=status.HTTP_200_OK)
+        if not chat:
+            return ErrorResponse({"message": "Chat could not be created."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(chat)
+        return SuccessResponse({"chat": serializer.data}, status=status.HTTP_200_OK)
+
+class ChatCreateGroupView(generics.CreateAPIView):
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChatSerializer
+
+    def get_object(self):
+        chat_name = self.request.data.get('name', None)
+        members = self.request.data.get('members', [])
+        creator = self.request.user
+
+        if not chat_name:
+            raise ValueError("Chat name is required to create a group chat.")
+
+        if not members:
+            raise ValueError("At least one member is required to create a group chat.")
+
+        return ChatService.create_group_chat(
+            name=chat_name,
+            member_ids=members,
+            creator=creator
+        )
 
     def create(self, request, *args, **kwargs):
         try:
@@ -42,10 +81,10 @@ class ChatListCreateAPIView(generics.ListCreateAPIView):
         if not chat:
             return ErrorResponse({"message": "Chat could not be created."}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.serializer_class(chat)
+        serializer = self.get_serializer(chat)
         return SuccessResponse({"chat": serializer.data}, status=status.HTTP_200_OK)
 
-class ChatMembersListAPIView(generics.ListAPIView):
+class ChatMembersListView(generics.ListAPIView):
 
     permission_classes = [IsAuthenticated]
     queryset = ChatUser.objects.all()
@@ -86,10 +125,9 @@ class ChatMembersListAPIView(generics.ListAPIView):
         serializer = self.get_serializer(chat_users, many=True)
         return SuccessResponse({"members": serializer.data}, status=status.HTTP_200_OK)
 
-class ChatMessagesListAPIView(generics.ListAPIView):
+class ChatMessagesListCreateView(generics.ListCreateAPIView):
 
     permission_classes = [IsAuthenticated]
-    serializer_class = MessageSerializer
 
     def get_object(self):
 
@@ -102,6 +140,32 @@ class ChatMessagesListAPIView(generics.ListAPIView):
             return Chat.objects.get(id=chat_id)
         except Chat.DoesNotExist:
             return None
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CreateMessageSerializer
+        return MessageSerializer
+
+    def post(self, request, *args, **kwargs):
+
+        try:
+            chat = self.get_object()
+        except ValueError as e:
+            return ErrorResponse({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not chat:
+            return ErrorResponse({"message": "Chat not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Include chat in serializer context
+        request.data['chat_id'] = chat.id
+
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return SuccessResponse({'message': serializer.data}, status=status.HTTP_201_CREATED)
+
+        return ErrorResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def list(self, request, *args, **kwargs):
 
@@ -122,35 +186,3 @@ class ChatMessagesListAPIView(generics.ListAPIView):
         serializer = self.get_serializer(messages, many=True)
 
         return SuccessResponse({"messages": serializer.data }, status=status.HTTP_200_OK)
-
-
-class SendMessageView(generics.CreateAPIView):
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = CreateMessageSerializer
-
-    def get_object(self):
-        chat_id = self.request.data.get('chat_id', -1)
-
-        try:
-            return Chat.objects.get(id=chat_id)
-        except Chat.DoesNotExist:
-            return None
-
-    def post(self, request, *args, **kwargs):
-
-        try:
-            chat = self.get_object()
-        except ValueError as e:
-            return ErrorResponse({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not chat:
-            return ErrorResponse({"message": "Chat not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-
-        if serializer.is_valid():
-            serializer.save()
-            return SuccessResponse({'message': serializer.data}, status=status.HTTP_201_CREATED)
-
-        return ErrorResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

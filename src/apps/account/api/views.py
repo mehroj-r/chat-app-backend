@@ -16,7 +16,7 @@ class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
 
         if serializer.is_valid():
 
@@ -51,7 +51,7 @@ class CurrentUserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
 
     def retrieve(self, request, *args, **kwargs):
-        serializer = self.serializer_class(self.request.user)
+        serializer = self.get_serializer(self.request.user)
         return SuccessResponse({"user": serializer.data}, status=status.HTTP_200_OK)
 
 
@@ -69,7 +69,7 @@ class UserSearchView(generics.ListAPIView):
             last_name_filter = Q(last_name__icontains=query)
             users = User.objects.filter(first_name_filter | last_name_filter)
 
-        serializer = self.serializer_class(users, many=True)
+        serializer = self.get_serializer(users, many=True)
 
         return SuccessResponse({"users": serializer.data}, status=status.HTTP_200_OK)
 
@@ -86,7 +86,7 @@ class UpdateProfileView(generics.UpdateAPIView):
             raise Profile.DoesNotExist("Profile does not exist for the current user.")
 
     def partial_update(self, request, *args, **kwargs):
-        serializer = self.serializer_class(self.get_object(), data=request.data, partial=True)
+        serializer = self.get_serializer(self.get_object(), data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()

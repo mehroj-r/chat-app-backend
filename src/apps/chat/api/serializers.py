@@ -1,17 +1,19 @@
 from rest_framework import serializers
 
+from apps.account.api.serializers import UserSerializer
 from apps.chat.choices import ChatTypeChoices
 from apps.chat.models import Chat, Message, ChatUser
 
 
 class CreateMessageSerializer(serializers.ModelSerializer):
-    sender = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    sender = UserSerializer(default=serializers.CurrentUserDefault())
     text = serializers.CharField(max_length=4096)
-    chat_id = serializers.IntegerField()
+    chat_id = serializers.CharField()
+    id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Message
-        fields = ('sender', 'chat_id', 'text')
+        fields = ('id', 'chat_id', 'text', 'sender')
 
     def validate_chat(self, value):
         """Ensure user is a member of the chat"""
@@ -95,7 +97,7 @@ class ChatSerializer(serializers.ModelSerializer):
 
 class ChatUserSerializer(serializers.ModelSerializer):
 
-    username = serializers.CharField(source='user.username', read_only=True)
+    username = serializers.CharField(source='user.profile.username', read_only=True)
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
 
@@ -106,4 +108,5 @@ class ChatUserSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
+            'role',
         )
